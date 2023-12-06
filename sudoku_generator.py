@@ -1,11 +1,17 @@
-import numpy as np
-import numpy.typing as npt
+import math
 import random
+from typing import Iterable, Iterator
 
 """
 This was adapted from a GeeksforGeeks article "Program for Sudoku Generator" by Aarti_Rathi and Ankur Trisal
 https://www.geeksforgeeks.org/program-sudoku-generator/
 """
+
+
+def flatten(__data: Iterable[Iterable]) -> Iterator:
+    for row in __data:
+        for val in row:
+            yield val
 
 
 class SudokuGenerator:
@@ -24,17 +30,18 @@ class SudokuGenerator:
         """
         self.row_length = row_length
         self.removed_cells = min(removed_cells, row_length**2)
-        box_length = np.sqrt(row_length)
+        box_length = math.sqrt(row_length)
         if not box_length.is_integer():
             raise ValueError('`row_length` must be a perfect square.')
         self.box_length = int(box_length)
-        self.board = np.array([[0 for _ in range(row_length)]
-                                  for _ in range(row_length)])
+        self.board = [[0 for _ in range(row_length)]
+                         for _ in range(row_length)]
 
     def get_board(self) -> list[list[int]]:
         """Returns a 2D python list of numbers which represents the board.
+        # Pointless Java Boilerplate in the Wrong Language
         """
-        return [[val for val in row] for row in self.board]
+        return self.board
 
     def __str__(self) -> str:
         return '\n'.join(
@@ -49,12 +56,12 @@ class SudokuGenerator:
         return (row - row%self.box_length,
                 col - col%self.box_length)
 
-    def box(self, row: int, col: int) -> npt.NDArray[np.int_]:
+    def box(self, row: int, col: int) -> list[list[int]]:
         """Returns the box that the cell with index (row, col) is in."""
         row_start, col_start = self.box_start(row, col)
         row_end = row_start + self.box_length
         col_end = col_start + self.box_length
-        return self.board[row_start:row_end, col_start:col_end]
+        return [row[col_start:col_end] for row in self.board[row_start:row_end]]
     
     def valid_in_row(self, row: int, num: int) -> bool:
         """Determines if num is contained in the specified row
@@ -76,7 +83,7 @@ class SudokuGenerator:
         - `col` is the index of the column we are checking
         - `num` is the value we are looking for in the column
         """
-        return num not in self.board.T[col]
+        return num not in tuple(zip(*self.board))[col]
 
     def valid_in_box(self, row: int, col: int, num: int) -> bool:
         """Determines if num is contained in the 3x3 box specified on the board
@@ -87,7 +94,7 @@ class SudokuGenerator:
         - `row` and `col` are the indices of a cell in the box to check
         - `num` is the value we are looking for in the box
         """
-        return num not in self.box(row, col).flatten()
+        return num not in flatten(self.box(row, col))
     
     def is_valid(self, row: int, col: int, num: int) -> bool:
         """Determines if it is valid to enter num at (row, col) in the board
@@ -111,14 +118,12 @@ class SudokuGenerator:
         - `row_start` and `col_start` are the starting indices of the box to check
         i.e. the box is from (row_start, col_start) to (row_start+2, col_start+2)
         """
-        row_end = row_start + self.box_length
-        col_end = col_start + self.box_length
-
-        arr = np.arange(1, self.row_length+1)
-        np.random.shuffle(arr)
-        new_box = arr.reshape((self.box_length, self.box_length))
-
-        self.board[row_start:row_end, col_start:col_end] = new_box
+        n = self.box_length
+        arr = list(range(1, self.row_length+1))
+        random.shuffle(arr)
+        for i in range(n):
+            for j in range(n):
+                self.board[i+row_start][j+col_start] = arr.pop()
     
     def fill_diagonal(self) -> None:
         """Fills the three boxes along the main diagonal of the board
@@ -158,10 +163,10 @@ class SudokuGenerator:
         
         for num in range(1, self.row_length + 1):
             if self.is_valid(row, col, num):
-                self.board[row, col] = num
+                self.board[row][col] = num
                 if self.fill_remaining(row, col + 1):
                     return True
-                self.board[row, col] = 0
+                self.board[row][col] = 0
         return False
 
     def fill_values(self) -> None:
@@ -185,7 +190,7 @@ class SudokuGenerator:
         idxs = tuple((i, j) for i in range(self.row_length)
                             for j in range(self.row_length))
         for i, j in random.sample(idxs, self.removed_cells):
-            self.board[i, j] = 0
+            self.board[i][j] = 0
 
 
 def generate_sudoku(size: int = 9,
@@ -211,7 +216,12 @@ def generate_sudoku(size: int = 9,
     return board
 
 
-# sudoku = SudokuGenerator(removed_cells=20)
-# sudoku.fill_values()
-# sudoku.remove_cells()
-# print(sudoku)
+def main() -> None:
+    sudoku = SudokuGenerator(removed_cells=20)
+    sudoku.fill_values()
+    sudoku.remove_cells()
+    print(sudoku)
+
+
+if __name__ == '__main__':
+    main()
