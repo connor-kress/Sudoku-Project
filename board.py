@@ -35,7 +35,7 @@ class Board:
         rows = len(__data)
         cols = len(__data[0])
         self.data = __data
-        self.cells = [[Cell(val, (i, j), (rows, cols))
+        self.cells = [[Cell(val, (i, j), (rows, cols), not val)
                        for j, val in enumerate(row)]
                        for i, row in enumerate(__data)]
 
@@ -59,10 +59,10 @@ class Board:
             rect = pygame.Rect(x-LINE_THICKNESS, 0, LINE_THICKNESS*2, HEIGHT)
             pygame.draw.rect(window, BLACK, rect)
 
-    def selected_cell(self) -> Cell:
-        assert self.selection is not None
-        row, col = self.selection
-        return self.cells[row][col]
+    # def selected_cell(self) -> Cell:
+    #     assert self.selection is not None
+    #     row, col = self.selection
+    #     return self.cells[row][col]
     
     def clear_selection(self) -> None:
         """Sets the selection back to `None`."""
@@ -81,8 +81,14 @@ class Board:
         if self.selection is not None:
             old_row, old_col = self.selection
             self.cells[old_row][old_col].selected = False
-        self.selection = (row, col)
-        self.cells[row][col].selected = True
+        new_cell = self.cells[row][col]
+        if new_cell.editable:
+            # print(f'Editing {new_cell}')
+            self.selection = (row, col)
+            new_cell.selected = True
+        else:
+            # print(f'Failed to edit {new_cell}')
+            self.selection = None
 
     def click(self, x: int, y: int) -> Optional[tuple[int, int]]:
         """If a tuple of (x, y) coordinates is within
@@ -93,16 +99,16 @@ class Board:
         return next((cell.pos for cell in flatten(self.cells)
                      if cell.outer.collidepoint(x, y)), None)
 
-    def clear(self) -> None:
-        """Clears the value cell. Note that the user can only
-        remove the cell values and sketched value that are
-        filled by themselves.
-        """
-        if self.selection is None:
-            return
-        row, col = self.selection
-        self.data[row][col] = 0
-        self.cells[row][col].clear()
+    # def clear(self) -> None:
+    #     """Clears the value cell. Note that the user can only
+    #     remove the cell values and sketched value that are
+    #     filled by themselves.
+    #     """
+    #     if self.selection is None:
+    #         return
+    #     row, col = self.selection
+    #     self.data[row][col] = 0
+    #     self.cells[row][col].clear()
 
     def set_current(self, __value: int) -> None:
         """Sets the value of the current selected cell equal
@@ -139,7 +145,7 @@ class Board:
         def box_works(row_start: int, col_start: int) -> bool:
             box = (row[col_start:col_start+n] for row
                    in self.data[row_start:row_start+n])
-            return set(flatten(box)) == 9
+            return len(set(flatten(box))) == 9
         
         if not self.is_full():
             return False

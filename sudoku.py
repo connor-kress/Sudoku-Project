@@ -1,82 +1,79 @@
 import pygame
+from pygame.event import Event
 from typing import Optional
 
 from board import Board
 from button import Button
 from consts import *
+from assets import *
 
 
-WIN = pygame.display.set_mode((WIDTH, HEIGHT + MENU_HEIGHT))
+WIN = pygame.display.set_mode((WIDTH, TOTAL_HEIGHT))
 pygame.display.set_caption('Sudoku')
 
-middle_bottom = pygame.Rect((0, 0), SMALL_BTN_SIZE)
-middle_bottom.center = (WIDTH / 2, HEIGHT + SMALL_BTN_SIZE[1]/2 + 5)
-RESTART_BTN = Button(
-    rect=middle_bottom,
-    text='RESTART',
-    bg_color=ORANGE,
-    text_color=WHITE,
-    font=SMALL_BTN_FONT,
-)
-
-reset_rect = middle_bottom.copy()
-reset_rect.x -= SMALL_BTN_SIZE[0] + 5
-RESET_BTN = Button(
-    rect=reset_rect,
-    text='RESET',
-    bg_color=ORANGE,
-    text_color=WHITE,
-    font=SMALL_BTN_FONT,
-)
-
-exit_rect = middle_bottom.copy()
-exit_rect.x += SMALL_BTN_SIZE[0] + 5
-EXIT_BTN = Button(
-    rect=exit_rect,
-    text='EXIT',
-    bg_color=ORANGE,
-    text_color=WHITE,
-    font=SMALL_BTN_FONT,
-)
 
 class Game:
-    def __init__(self, difficulty: Difficulty) -> None:
-        self.board = Board(removed=difficulty.value)
-        self.state = State.ACTIVE
+    def __init__(self) -> None:
+        """Instantiates the `Game` in the starting state."""
+        self.difficulty = None
+        self.board = None
+        self.state = State.START
         self.clock = pygame.time.Clock()
-    
-    # def __init__(self) -> None:
-    #     self.difficulty = None
-    #     self.board = None
-    #     self.state = State.START
-    #     self.clock = pygame.time.Clock()
 
     def tick(self) -> bool:
+        """Performs the drawing and logic for one game tick.
+        Returns a boolean representing if the game loop should continue.
+        """
         self.clock.tick(FPS)
         WIN.fill(WHITE)
         events = pygame.event.get()
         if pygame.QUIT in (event.type for event in events):
             return False
+        loop = True
         match self.state:
-            case State.START:
-                loop = self.tick_start(events)
-            case State.ACTIVE:
-                loop = self.tick_active(events)
-            case State.WON:
-                loop = self.tick_won(events)
+            case State.START:  # starting menu/screen
+                self.tick_start_screen(events)
+            case State.ACTIVE:  # active game screen
+                loop = self.tick_active_screen(events)
+            case State.WON:  # game completed screen
+                loop = self.tick_game_over_screen(events)
             case _:
-                raise NotImplementedError
+                raise Exception(f'Invalid state: {self.state!r}')
         pygame.display.update()
         return loop
 
-    def tick_start(self, events: list[pygame.event.Event]) -> bool:
-        raise NotImplementedError
+    def draw_start_screen(self) -> None:
+        WIN.blit(WELCOME, WELCOME_RECT)
+        WIN.blit(DIFFICULTY_LABLE, DIFFICULTY_LABLE_RECT)
+        EASY_BTN.draw(WIN)
+        MEDIUM_BTN.draw(WIN)
+        HARD_BTN.draw(WIN)
 
-    def tick_active(self, events: list[pygame.event.Event]) -> bool:
+    def tick_start_screen(self, events: list[Event]) -> None:
+        self.draw_start_screen()
+        difficulty = None
+        for event in events:
+            if event.type != pygame.MOUSEBUTTONDOWN:
+                continue
+            x, y = event.dict['pos']
+            if EASY_BTN.click(x, y):
+                difficulty = Difficulty.EASY
+            if MEDIUM_BTN.click(x, y):
+                difficulty = Difficulty.MEDIUM
+            if HARD_BTN.click(x, y):
+                difficulty = Difficulty.HARD
+        if difficulty is not None:
+            self.state = State.ACTIVE
+            self.board = Board(removed=difficulty.value)
+
+    def draw_active_screen(self) -> None:
         self.board.draw(WIN)
         RESET_BTN.draw(WIN)
         RESTART_BTN.draw(WIN)
         EXIT_BTN.draw(WIN)
+
+    def tick_active_screen(self, events: list[Event]) -> bool:
+        self.draw_active_screen()
         for event in events:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 x, y = event.dict['pos']
@@ -99,10 +96,20 @@ class Game:
                         if self.board.is_solved():
                             self.state = State.WON
         return True
+    
+    def draw_game_over_screen(self) -> None:
+        WIN.blit(WON, WON_RECT)
+        FINAL_EXIT_BTN.draw(WIN)
 
-    def tick_won(self, events: list[pygame.event.Event]) -> bool:
-        print('You Won!')
-        return False  # not Implemented
+    def tick_game_over_screen(self, events: list[Event]) -> bool:
+        self.draw_game_over_screen()
+        for event in events:
+            if event.type != pygame.MOUSEBUTTONDOWN:
+                continue
+            x, y = event.dict['pos']
+            if FINAL_EXIT_BTN.click(x, y):
+                return False
+        return True
 
     def run(self) -> None:
         while self.tick():
@@ -110,7 +117,7 @@ class Game:
 
 
 def main() -> None:
-    Game(Difficulty.MEDIUM).run()
+    Game().run()
 
 
 if __name__ == '__main__':

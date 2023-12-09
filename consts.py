@@ -5,12 +5,17 @@ import os
 pygame.font.init()
 
 ARIAL_PATH = os.path.join('fonts', 'arial.ttf')
+ARIAL_BOLD_PATH = os.path.join('fonts', 'arial_bold.ttf')
+
+TITLE_FONT = pygame.font.Font(ARIAL_BOLD_PATH, 35)
+HEADER_FONT = pygame.font.Font(ARIAL_PATH, 30)
 NUMBER_FONT = pygame.font.Font(ARIAL_PATH, 32)
 BIG_BTN_FONT = pygame.font.Font(ARIAL_PATH, 25)
 SMALL_BTN_FONT = pygame.font.Font(ARIAL_PATH, 15)
 
 WIDTH, HEIGHT = 450, 450
 MENU_HEIGHT = 50
+TOTAL_HEIGHT = HEIGHT + MENU_HEIGHT
 
 FPS = 60
 
@@ -21,7 +26,8 @@ SMALL_BTN_SIZE = (75, 40)
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-GRAY = (200, 200, 200)
+LIGHT_GRAY = (200, 200, 200)
+DARK_GRAY = (115, 115, 115)
 RED = (255, 0, 0)
 ORANGE = (255, 165, 0)
 
